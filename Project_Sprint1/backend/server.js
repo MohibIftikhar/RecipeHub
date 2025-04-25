@@ -102,6 +102,9 @@ const verifyToken = (req, res, next) => {
 };
 
 // Routes
+app.get('/', (req, res) => {
+  res.send('Welcome to RecipeHub!');
+});
 
 // Register
 app.post('/register', async (req, res) => {
