@@ -97,7 +97,7 @@ const RecipeList = () => {
               {recipe.imageUrl && (
                 <div className="quick-view">
                   <img
-                    src={`http://localhost:5000${recipe.imageUrl}`}
+                    src={`https://recipehub-h224.onrender.com${recipe.imageUrl}`}
                     alt={recipe.name}
                   />
                 </div>
