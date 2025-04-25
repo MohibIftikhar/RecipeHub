@@ -24,7 +24,7 @@ const EditRecipe = () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) throw new Error('No token found');
-        const res = await axios.get(`https://recipehub-h224.onrender.com/${id}`, {
+        const res = await axios.get(`https://recipehub-h224.onrender.com/recipes/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         console.log("Fetched recipe data:");
