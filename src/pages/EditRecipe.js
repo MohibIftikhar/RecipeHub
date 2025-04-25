@@ -106,7 +106,7 @@ const EditRecipe = () => {
       if (formData.image) {
         data.append('image', formData.image);
       }
-      await axios.put(`https://recipehub-h224.onrender.com/${id}`, data, {
+      await axios.put(`https://recipehub-h224.onrender.com/recipes/${id}`, data, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
