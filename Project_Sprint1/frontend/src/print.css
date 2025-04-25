@@ -1,0 +1,76 @@
+@media print {
+    /* Hide the background image and pseudo-elements */
+    body::before {
+      display: none;
+    }
+  
+    /* Remove the background color and shadows for a clean print */
+    body {
+      background: none;
+      color: #000; /* Black text for better print readability */
+    }
+  
+    div {
+      background: none;
+      box-shadow: none;
+      border: none;
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      max-width: 100%;
+    }
+  
+    /* Hide unnecessary elements */
+    .recipe-actions,
+    .print-button,
+    .edit-link,
+    form,
+    h3:nth-of-type(2), /* "Comments" heading */
+    .review-item,
+    p:contains("No comments yet.") {
+      display: none;
+    }
+  
+    /* Adjust layout for printing */
+    .recipe-details {
+      padding: 0;
+    }
+  
+    h1 {
+      font-size: 24pt;
+      text-align: left;
+      color: #000;
+    }
+  
+    h2, h3 {
+      font-size: 18pt;
+      color: #000;
+    }
+  
+    p, li {
+      font-size: 12pt;
+      color: #000;
+    }
+  
+    ul, ol {
+      margin: 10px 0;
+    }
+  
+    li {
+      background: none;
+      box-shadow: none;
+      padding: 5px 0;
+      margin: 5px 0;
+    }
+  
+    /* Ensure the YouTube link is printed as plain text */
+    a[href^="https://www.youtube.com"] {
+      text-decoration: none;
+      color: #000;
+    }
+  
+    a[href^="https://www.youtube.com"]::after {
+      content: " (" attr(href) ")";
+      font-size: 10pt;
+    }
+  }

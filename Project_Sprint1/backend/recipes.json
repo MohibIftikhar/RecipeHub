@@ -1,0 +1,450 @@
+[
+  {
+    "id": 1,
+    "name": "Spaghetti Carbonara",
+    "cuisine": "Italian",
+    "cookingTime": 20,
+    "ingredients": [
+      {
+        "name": "spaghetti",
+        "quantity": "200",
+        "unit": "g"
+      },
+      {
+        "name": "eggs",
+        "quantity": "2",
+        "unit": null
+      },
+      {
+        "name": "parmesan cheese",
+        "quantity": "50",
+        "unit": "g"
+      },
+      {
+        "name": "pancetta",
+        "quantity": "100",
+        "unit": "g"
+      },
+      {
+        "name": "black pepper",
+        "quantity": "1",
+        "unit": "tsp"
+      }
+    ],
+    "nutritionalInfo": "Calories: 600, Protein: 25g, Carbs: 70g",
+    "rating": "27.5",
+    "reviews": [],
+    "comments": [
+      {
+        "comment": "Amazing",
+        "rating": "5"
+      },
+      {
+        "comment": "msmsmmsmsmsdeoowcnec veurbveurbvuiebvuierbcuiencunzedc ediucbfeuibvieiuberibvi ve viebvgbeuir vie bvierbvibede veibverbve bribveriubvedbverubvibevber verv eiuceuibiwu3 bu3bc se c se veibevievueivb",
+        "rating": 5
+      }
+    ],
+    "methodSteps": [
+      "Cook pasta",
+      "Fry pancetta",
+      "Mix eggs and cheese",
+      "Combine all ingredients"
+    ],
+    "youtubeLink": "https://www.youtube.com/watch?v=NqFi90p38N8",
+    "imageUrl": "/uploads/1745063019290-322896450.jpg"
+  },
+  {
+    "id": 2,
+    "name": "Chicken Tikka Masala",
+    "cuisine": "Indian",
+    "cookingTime": 45,
+    "ingredients": [
+      {
+        "name": "chicken breast",
+        "quantity": "500",
+        "unit": "g"
+      },
+      {
+        "name": "yogurt",
+        "quantity": "150",
+        "unit": "g"
+      },
+      {
+        "name": "tomato puree",
+        "quantity": "200",
+        "unit": "ml"
+      },
+      {
+        "name": "cream",
+        "quantity": "100",
+        "unit": "ml"
+      },
+      {
+        "name": "garam masala",
+        "quantity": "1",
+        "unit": "tbsp"
+      },
+      {
+        "name": "turmeric",
+        "quantity": "1",
+        "unit": "tsp"
+      },
+      {
+        "name": "garlic",
+        "quantity": "3",
+        "unit": "cloves"
+      },
+      {
+        "name": "ginger",
+        "quantity": "1",
+        "unit": "inch"
+      },
+      {
+        "name": "onion",
+        "quantity": "1",
+        "unit": "medium"
+      },
+      {
+        "name": "butter",
+        "quantity": "2",
+        "unit": "tbsp"
+      }
+    ],
+    "nutritionalInfo": "Calories: 550, Protein: 35g, Carbs: 20g",
+    "rating": 0,
+    "reviews": [],
+    "comments": [],
+    "methodSteps": [
+      "Marinate chicken with yogurt and spices",
+      "Grill or cook chicken until charred",
+      "Sauté onion",
+      "garlic",
+      "and ginger",
+      "Add tomato puree and spices",
+      "cook until thickened",
+      "Add cream and chicken",
+      "simmer for 10 minutes",
+      "Serve with rice or naan"
+    ],
+    "youtubeLink": "https://www.youtube.com/watch?v=lnRmIKkGCIA",
+    "imageUrl": "/uploads/1745062571056-708441686.jpg"
+  },
+  {
+    "id": 3,
+    "name": "Beef Tacos",
+    "cuisine": "Mexican",
+    "cookingTime": 30,
+    "ingredients": [
+      {
+        "name": "ground beef",
+        "quantity": "400",
+        "unit": "g"
+      },
+      {
+        "name": "taco seasoning",
+        "quantity": "2",
+        "unit": "tbsp"
+      },
+      {
+        "name": "tortillas",
+        "quantity": "8",
+        "unit": null
+      },
+      {
+        "name": "lettuce",
+        "quantity": "1",
+        "unit": "cup"
+      },
+      {
+        "name": "tomato",
+        "quantity": "2",
+        "unit": "medium"
+      },
+      {
+        "name": "cheddar cheese",
+        "quantity": "100",
+        "unit": "g"
+      },
+      {
+        "name": "salsa",
+        "quantity": "0.5",
+        "unit": "cup"
+      },
+      {
+        "name": "sour cream",
+        "quantity": "0.5",
+        "unit": "cup"
+      }
+    ],
+    "nutritionalInfo": "Calories: 450, Protein: 20g, Carbs: 35g",
+    "rating": 0,
+    "reviews": [],
+    "comments": [],
+    "methodSteps": [
+      "Cook ground beef with taco seasoning",
+      "Warm tortillas in a pan or oven",
+      "Chop lettuce and tomato",
+      "Assemble tacos with beef",
+      "lettuce",
+      "tomato",
+      "cheese",
+      "salsa",
+      "and sour cream",
+      "Serve immediately"
+    ],
+    "youtubeLink": "https://www.youtube.com/watch?v=cNLp6WhP2UI",
+    "imageUrl": "/uploads/1745062591607-365921791.jpg"
+  },
+  {
+    "id": 4,
+    "name": "Vegetable Stir-Fry",
+    "cuisine": "Chinese",
+    "cookingTime": 25,
+    "ingredients": [
+      {
+        "name": "broccoli",
+        "quantity": "1",
+        "unit": "head"
+      },
+      {
+        "name": "bell peppers",
+        "quantity": "2",
+        "unit": null
+      },
+      {
+        "name": "carrots",
+        "quantity": "2",
+        "unit": "medium"
+      },
+      {
+        "name": "snap peas",
+        "quantity": "1",
+        "unit": "cup"
+      },
+      {
+        "name": "soy sauce",
+        "quantity": "3",
+        "unit": "tbsp"
+      },
+      {
+        "name": "sesame oil",
+        "quantity": "1",
+        "unit": "tbsp"
+      },
+      {
+        "name": "garlic",
+        "quantity": "2",
+        "unit": "cloves"
+      },
+      {
+        "name": "ginger",
+        "quantity": "1",
+        "unit": "inch"
+      },
+      {
+        "name": "tofu",
+        "quantity": "200",
+        "unit": "g"
+      },
+      {
+        "name": "rice",
+        "quantity": "1",
+        "unit": "cup (uncooked)"
+      }
+    ],
+    "nutritionalInfo": "Calories: 300, Protein: 15g, Carbs: 40g",
+    "rating": 0,
+    "reviews": [],
+    "comments": [],
+    "methodSteps": [
+      "Cook rice according to package instructions",
+      "Sauté garlic and ginger in sesame oil",
+      "Add vegetables and tofu",
+      "stir-fry until tender",
+      "Add soy sauce and stir for 2 more minutes",
+      "Serve over rice"
+    ],
+    "youtubeLink": "https://www.youtube.com/watch?v=SFq4W3iMsKQ",
+    "imageUrl": "/uploads/1745062613149-286234559.jpg"
+  },
+  {
+    "id": 5,
+    "name": "Greek Salad",
+    "cuisine": "Greek",
+    "cookingTime": 15,
+    "ingredients": [
+      {
+        "name": "cucumber",
+        "quantity": "1",
+        "unit": null
+      },
+      {
+        "name": "tomato",
+        "quantity": "2",
+        "unit": "medium"
+      },
+      {
+        "name": "red onion",
+        "quantity": "1",
+        "unit": "small"
+      },
+      {
+        "name": "feta cheese",
+        "quantity": "100",
+        "unit": "g"
+      },
+      {
+        "name": "olives",
+        "quantity": "0.5",
+        "unit": "cup"
+      },
+      {
+        "name": "olive oil",
+        "quantity": "3",
+        "unit": "tbsp"
+      },
+      {
+        "name": "lemon juice",
+        "quantity": "2",
+        "unit": "tbsp"
+      },
+      {
+        "name": "garlic",
+        "quantity": "1",
+        "unit": "clove"
+      },
+      {
+        "name": "oregano",
+        "quantity": "1",
+        "unit": "tsp"
+      },
+      {
+        "name": "salt",
+        "quantity": "0.5",
+        "unit": "tsp"
+      }
+    ],
+    "nutritionalInfo": "Calories: 200, Protein: 8g, Carbs: 10g",
+    "rating": 0,
+    "reviews": [],
+    "comments": [],
+    "methodSteps": [
+      "Chop cucumber",
+      "tomato",
+      "and red onion",
+      "Mix vegetables with olives and feta cheese",
+      "Whisk olive oil",
+      "lemon juice",
+      "garlic",
+      "oregano",
+      "and salt for dressing",
+      "Toss salad with dressing",
+      "Serve chilled"
+    ],
+    "youtubeLink": "https://www.youtube.com/watch?v=kwq4vl610iY",
+    "imageUrl": "/uploads/1745062634512-95312941.jpg"
+  },
+  {
+    "id": 6,
+    "name": "Chocolate Chip Cookies",
+    "cuisine": "American",
+    "cookingTime": 30,
+    "ingredients": [
+      {
+        "name": "flour",
+        "quantity": "1.5",
+        "unit": "cups"
+      },
+      {
+        "name": "butter",
+        "quantity": "0.5",
+        "unit": "cup"
+      },
+      {
+        "name": "sugar",
+        "quantity": "0.5",
+        "unit": "cup"
+      },
+      {
+        "name": "brown sugar",
+        "quantity": "0.5",
+        "unit": "cup"
+      },
+      {
+        "name": "eggs",
+        "quantity": "1",
+        "unit": null
+      },
+      {
+        "name": "vanilla extract",
+        "quantity": "1",
+        "unit": "tsp"
+      },
+      {
+        "name": "baking soda",
+        "quantity": "0.5",
+        "unit": "tsp"
+      },
+      {
+        "name": "salt",
+        "quantity": "0.25",
+        "unit": "tsp"
+      },
+      {
+        "name": "chocolate chips",
+        "quantity": "1",
+        "unit": "cup"
+      }
+    ],
+    "nutritionalInfo": "Calories: 150 per cookie, Protein: 2g, Carbs: 20g",
+    "rating": 0,
+    "reviews": [],
+    "comments": [],
+    "methodSteps": [
+      "Preheat oven to 350°F (175°C)",
+      "Cream butter",
+      "sugar",
+      "and brown sugar",
+      "Add eggs and vanilla",
+      "mix well",
+      "Mix in flour",
+      "baking soda",
+      "and salt",
+      "Fold in chocolate chips",
+      "Scoop dough onto a baking sheet",
+      "Bake for 10-12 minutes until golden"
+    ],
+    "youtubeLink": "https://www.youtube.com/watch?v=YEZPxhMneOc",
+    "imageUrl": "/uploads/1745062648146-488071176.jpg"
+  },
+  {
+    "id": 7,
+    "name": "Chicken Tikka Masala",
+    "cuisine": "Italian",
+    "cookingTime": 4,
+    "ingredients": [
+      {
+        "name": "Potatoes",
+        "quantity": "3.1",
+        "unit": "kg"
+      }
+    ],
+    "nutritionalInfo": "Calories: 600, Protein: 25g, Carbs: 70g",
+    "methodSteps": [
+      "Marinate chicken with yogurt and spices",
+      "Grill or cook chicken until charred",
+      "Sauté onion",
+      "garlic",
+      "and ginger",
+      "Add tomato puree and spices",
+      "cook until thickened",
+      "Add cream and chicken",
+      "simmer for 10 minutes",
+      "Serve with rice or naan"
+    ],
+    "youtubeLink": "",
+    "imageUrl": "/uploads/1745169221090-661621210.jpg",
+    "comments": [],
+    "rating": 0
+  }
+]
