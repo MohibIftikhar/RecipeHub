@@ -17,12 +17,42 @@ const app = express();
 const port = 5000;
 
 // Connect to MongoDB
+console.log("Attempting to connect to MongoDB...");
+
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
-.then(() => console.log('MongoDB connected'))
-.catch(err => console.error('MongoDB connection error:', err));
+.then(() => {
+  console.log('MongoDB connection established successfully.');
+})
+.catch(err => {
+  console.error('MongoDB connection error:', err);
+  // Optionally log the error stack for more details
+  console.error(err.stack);
+});
+
+// Additional logging during the startup process
+mongoose.connection.on('connecting', () => {
+  console.log('MongoDB is connecting...');
+});
+
+mongoose.connection.on('connected', () => {
+  console.log('MongoDB connection established.');
+});
+
+mongoose.connection.on('disconnecting', () => {
+  console.log('MongoDB is disconnecting...');
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('MongoDB disconnected.');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('MongoDB connection error:', err);
+});
+
 
 // Middleware
 app.use(cors());
