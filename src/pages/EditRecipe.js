@@ -27,6 +27,7 @@ const EditRecipe = () => {
         const res = await axios.get(`https://recipehub-h224.onrender.com/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
+        console.log("Fetched recipe data:");
         setFormData({
           name: res.data.name,
           cuisine: res.data.cuisine,
