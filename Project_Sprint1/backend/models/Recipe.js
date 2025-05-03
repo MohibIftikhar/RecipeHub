@@ -2,8 +2,10 @@ const mongoose = require('mongoose');
 
 const ingredientSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  quantity: { type: String, required: true }
+  quantity: { type: String, required: true },
+  unit: { type: String, default: '', required: true }
 });
+
 
 const commentSchema = new mongoose.Schema({
   comment: { type: String, required: true },
