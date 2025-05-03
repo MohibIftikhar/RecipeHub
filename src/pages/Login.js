@@ -6,29 +6,32 @@ function Login({ setToken }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [showPassword, setShowPassword] = useState(false); // State for toggling password visibility
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const apiUrl = process.env.REACT_APP_API_URL || 'https://recipehub-h224.onrender.com';
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
+
     try {
-      console.log('Sending login request:', { username });
-      const res = await axios.post('https://recipehub-h224.onrender.com/login', {
+      console.log('Sending login request:', { username }); // Debug log
+      const res = await axios.post(`${apiUrl}/login`, {
         username,
         password,
       });
-      console.log('Login response:', res.data);
-      const token = res.data.token;
+      console.log('Login response:', res.data); // Debug log
+      const { token, username: returnedUsername } = res.data;
       if (!token) {
         throw new Error('No token received from server');
       }
       localStorage.setItem('token', token);
-      setToken(token); // Update App.js state
-      console.log('Navigating to /');
-      navigate('/', { replace: true });
+      localStorage.setItem('username', returnedUsername); // Store username
+      setToken(token);
+      console.log('Navigating to /recipes'); // Debug log
+      navigate('/recipes', { replace: true });
     } catch (err) {
-      console.error('Login error:', err.response || err.message || err);
+      console.error('Login error:', err.response || err.message || err); // Debug log
       setError(err.response?.data?.message || err.message || 'Login failed');
     }
   };
@@ -60,23 +63,23 @@ function Login({ setToken }) {
             required
           />
           <span
-          className="eye-icon"
-          onClick={toggleShowPassword}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              toggleShowPassword();
-            }
-          }}
-        >
-          <i className={showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'}></i>
-        </span>
+            className="eye-icon"
+            onClick={toggleShowPassword}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                toggleShowPassword();
+              }
+            }}
+          >
+            <i className={showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'}></i>
+          </span>
         </div>
         <button type="submit">Login</button>
       </form>
       <p>
-        Don't have an account? <Link to="/register">Sign Up here</Link>
+        Don't have an account? <Link to="/register">Register</Link>
       </p>
     </div>
   );

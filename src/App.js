@@ -76,7 +76,7 @@ function App() {
               element={<ProtectedRoute><EditRecipe /></ProtectedRoute>}
             />
             <Route path="/login" element={<Login setToken={setToken} />} />
-            <Route path="/register" element={<Register />} /> {/* Add route for Register */}
+            <Route path="/register" element={<Register />} /> {} 
             <Route
               path="*"
               element={<Navigate to={token ? "/" : "/login"} replace />}

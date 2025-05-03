@@ -18,7 +18,7 @@ function Register() {
     setPasswordError('');
 
     if (username.length < 6 || username.length > 15) {
-      setUsernameError('Username must be between 6 and 15 characters.');
+      setUsernameError('UUsername must be in between 6 - 15 characters.');
       isValid = false;
     }
 

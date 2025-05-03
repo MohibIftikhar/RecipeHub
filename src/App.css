@@ -151,7 +151,7 @@
 main {
   flex: 1;
   padding: 20px;
-  padding-top: 140px;
+  padding-top: 80px;
 }
 
 /* Home Page Styling */
@@ -159,21 +159,36 @@ main {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 40px;
+  gap: 0px;
   padding: 20px;
   background: #FFFFFF;
   border-radius: 15px;
-  margin: 40px auto;
+  margin: 0 auto;
   max-width: 1200px;
 }
 
 /* Image Slider Styling */
 .image-slider {
+  position: relative;
   width: 100%;
-  max-width: 1000px;
-  height: 400px;
+  max-width: 1200px;
+  height: 450px; /* Increased height to accommodate arrows inside */
   overflow: hidden;
-  border-radius: 10px;
+  border-radius: 15px;
+  background: #fff;
+  margin: 20px auto; /* Center the slider */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.slider-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .slider-image {
@@ -181,6 +196,86 @@ main {
   height: 100%;
   object-fit: cover;
   transition: opacity 0.5s ease-in-out;
+  border-radius: 15px;
+}
+
+.slider-caption {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: white;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-family: 'Playfair Display', serif;
+  font-size: 1.5rem;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
+  white-space: nowrap;
+  z-index: 10;
+}
+
+/* Slider Navigation Buttons */
+.slider-button {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.8);
+  color: rgba(244, 162, 97, 0.8);
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.slider-button:hover {
+  background-color: rgba(244, 162, 97, 0.8);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.slider-button.prev {
+  left: 20px; /* Adjusted to be inside the image */
+}
+
+.slider-button.next {
+  right: 20px; /* Adjusted to be inside the image */
+}
+
+/* Slider Dot Indicators */
+.slider-dots {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  background: #E0C097;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.dot.active {
+  background: #F4A261;
+  transform: scale(1.3);
+}
+
+.dot:hover {
+  background: #E76F51;
+  transform: scale(1.3);
 }
 
 /* About Section Styling */
@@ -513,6 +608,7 @@ li:hover {
   background: #FFFFFF;
   padding: 20px;
   border-radius: 10px;
+  z-index: 1;
 }
 
 /* Recipe Item Styling */
@@ -525,6 +621,7 @@ li:hover {
   background: #FFF5E4;
   border-left: 5px solid #F4A261;
   border-radius: 10px;
+  z-index: 1;
 }
 
 .recipe-item h3 {
@@ -532,11 +629,13 @@ li:hover {
   margin: 0;
   font-size: 1.25rem;
   color: #4A2C2A;
+  z-index: 1;
 }
 
 .recipe-item p {
   margin: 10px 0;
   color: #6D4C41;
+  z-index: 1;
 }
 
 /* Quick View Image on Hover */
@@ -549,6 +648,10 @@ li:hover {
 
 .recipe-item:hover .quick-view {
   display: block;
+  height: 120px; 
+  width: 120px; 
+  background: transparent;
+  z-index: 100;
 }
 
 .quick-view {
@@ -557,11 +660,14 @@ li:hover {
   top: -60px;
   left: 100%;
   margin-left: 10px;
-  z-index: 10;
+  z-index: 100;
+  background: transparent;
 }
 
 .quick-view img {
-  width: 120px;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   height: auto;
   border-radius: 8px;
   border: 2px solid #F4A261;
@@ -589,6 +695,15 @@ li:hover {
   padding: 15px;
   margin: 10px 0;
   border-radius: 10px;
+}
+
+.delete-comment {
+  margin-left: 10px;
+  color: red;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
 }
 
 /* Add Recipe Link Styling */
@@ -847,9 +962,41 @@ li:hover {
   .recipe-image img {
     max-height: 200px;
   }
-
   .image-slider {
-    height: 200px;
+    max-width: 100%;
+    height: 300px;
+  }
+
+  .slider-caption {
+    font-size: 1.2rem;
+    padding: 8px 15px;
+  }
+
+  .slider-button {
+    width: 30px;
+    height: 30px;
+    font-size: 1.2rem;
+  }
+
+  .slider-button.prev {
+    left: 10px;
+  }
+
+  .slider-button.next {
+    right: 10px;
+  }
+
+  .slider-dots {
+    gap: 6px;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+  }
+
+  main {
+    padding-top: 60px; /* Further reduced for mobile */
   }
 
   .app-header {
