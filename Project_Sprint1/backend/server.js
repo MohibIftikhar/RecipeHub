@@ -9,11 +9,7 @@ const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const { v4: uuidv4 } = require('uuid');
 
-
-const User = require('./models/User');
-const Recipe = require('./models/Recipe');
-const Counter = require('./models/Counter');
-
+// Version: 2025-05-08 - Added methodSteps validation and detailed logging for POST /recipes
 dotenv.config();
 
 const app = express();
@@ -45,6 +41,49 @@ mongoose.connect(process.env.MONGO_URI, {
   process.exit(1);
 });
 
+// Schemas
+const userSchema = new mongoose.Schema({
+  username: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+});
+
+const ingredientSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  quantity: { type: String, required: true },
+  unit: { type: String, default: '', required: true }
+});
+
+const commentSchema = new mongoose.Schema({
+  comment: { type: String, required: true },
+  rating: { type: Number, required: true },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
+});
+
+const recipeSchema = new mongoose.Schema({
+  id: { type: Number, required: true, unique: true },
+  name: { type: String, required: true },
+  cuisine: { type: String, required: true },
+  cookingTime: { type: Number, required: true },
+  ingredients: [ingredientSchema],
+  nutritionalInfo: { type: String, default: '' },
+  methodSteps: { type: [String], required: true },
+  youtubeLink: { type: String, default: '' },
+  imageUrl: { type: String, default: '' },
+  comments: [commentSchema],
+  rating: { type: Number, default: 0 },
+  createdBy: { type: String, required: true },
+  reviews: [{ type: mongoose.Schema.Types.Mixed }],
+}, { timestamps: true });
+
+const counterSchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true },
+  seq: { type: Number, default: 0 }
+});
+
+const User = mongoose.model('User', userSchema);
+const Recipe = mongoose.model('Recipe', recipeSchema);
+const Counter = mongoose.model('Counter', counterSchema);
+
 // Middleware
 app.use(cors({
   origin: ['https://recipehubfe.onrender.com', 'http://localhost:3000'],
@@ -71,10 +110,9 @@ const upload = multer({
     }
     cb(new Error('Only .jpg and .png files are allowed'));
   },
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  limits: { fileSize: 5 * 1024 * 1024 },
 });
 
-// Multer error handling middleware
 const handleMulterError = (err, req, res, next) => {
   if (err instanceof multer.MulterError) {
     return res.status(400).json({ message: err.message });
@@ -99,12 +137,18 @@ const verifyToken = (req, res, next) => {
 };
 
 const getNextRecipeId = async () => {
-  const counter = await Counter.findOneAndUpdate(
-    { name: 'recipeId' },
-    { $inc: { seq: 1 } },
-    { new: true, upsert: true }
-  );
-  return counter.seq;
+  try {
+    const counter = await Counter.findOneAndUpdate(
+      { name: 'recipeId' },
+      { $inc: { seq: 1 } },
+      { new: true, upsert: true }
+    );
+    console.log('Counter updated:', counter); // Debug log
+    return counter.seq;
+  } catch (err) {
+    console.error('getNextRecipeId error:', err);
+    throw err;
+  }
 };
 
 // Routes
@@ -116,7 +160,6 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK' });
 });
 
-// Register
 app.post('/register', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
@@ -133,11 +176,10 @@ app.post('/register', async (req, res) => {
     res.status(201).json({ message: 'User registered successfully' });
   } catch (err) {
     console.error('Register error:', err);
-    res.status(500).json({ message: 'Server error during registration' });
+    res.status(500).json({ message: 'Server error during registration', error: err.message });
   }
 });
 
-// Login
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
@@ -159,16 +201,18 @@ app.post('/login', async (req, res) => {
     res.json({ message: 'Login successful', token, username });
   } catch (err) {
     console.error('Login error:', err);
-    res.status(500).json({ message: 'Server error during login' });
+    res.status(500).json({ message: 'Server error during login', error: err.message });
   }
 });
 
-// Get all recipes
 app.get('/recipes', verifyToken, async (req, res) => {
   try {
-    res.json(await Recipe.find());
+    const recipes = await Recipe.find();
+    console.log('Fetched recipes:', recipes);
+    res.json(recipes);
   } catch (err) {
-    res.status(500).json({ message: 'Server error' });
+    console.error('Fetch recipes error:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 
@@ -176,49 +220,71 @@ app.get('/recipes/:id', verifyToken, async (req, res) => {
   try {
     const recipeId = parseInt(req.params.id);
     if (isNaN(recipeId)) {
+      console.log(`Invalid recipe ID received: ${req.params.id}`);
       return res.status(400).json({ message: 'Invalid recipe ID' });
     }
-    console.log(`Fetching recipe with ID: ${recipeId}`); // Debug log
+    console.log(`Fetching recipe with ID: ${recipeId} (type: ${typeof recipeId})`);
     const recipe = await Recipe.findOne({ id: recipeId });
-    console.log('Recipe found:', recipe); // Debug log
+    console.log('Recipe found:', recipe ? recipe : 'None');
     if (!recipe) {
       return res.status(404).json({ message: `Recipe with ID ${recipeId} not found` });
     }
     res.json(recipe);
-  } catch (error) {
-    console.error('Fetch recipe error:', error);
-    res.status(500).json({ message: 'Server error' });
+  } catch (err) {
+    console.error('Fetch recipe error:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 
-// Create a new recipe
 app.post('/recipes', verifyToken, upload.single('image'), handleMulterError, async (req, res) => {
   const { name, cuisine, cookingTime, ingredients, nutritionalInfo, methodSteps, youtubeLink } = req.body;
-  if (!name || !cuisine || !cookingTime || !ingredients) return res.status(400).json({ message: 'Required fields missing' });
+  if (!name || !cuisine || !cookingTime || !ingredients || !methodSteps) {
+    return res.status(400).json({ message: 'Required fields missing' });
+  }
   try {
-    const parsedIngredients = JSON.parse(ingredients);
+    const parsedCookingTime = parseInt(cookingTime);
+    if (isNaN(parsedCookingTime) || parsedCookingTime <= 0) {
+      return res.status(400).json({ message: 'Cooking time must be a positive number' });
+    }
+    console.log('Received ingredients:', ingredients);
+    let parsedIngredients;
+    try {
+      parsedIngredients = JSON.parse(ingredients);
+      console.log('Parsed ingredients:', parsedIngredients);
+    } catch (parseError) {
+      console.error('Ingredients parse error:', parseError);
+      return res.status(400).json({ message: 'Invalid ingredients format' });
+    }
+    if (!Array.isArray(parsedIngredients)) {
+      return res.status(400).json({ message: 'Ingredients must be an array' });
+    }
     let parsedMethodSteps;
     try {
       parsedMethodSteps = JSON.parse(methodSteps);
+      console.log('Parsed methodSteps:', parsedMethodSteps);
       if (!Array.isArray(parsedMethodSteps)) {
         return res.status(400).json({ message: 'methodSteps must be an array' });
       }
-      // Ensure each step is a string and trimmed
       parsedMethodSteps = parsedMethodSteps.map(step => typeof step === 'string' ? step.trim() : '');
-      if (parsedMethodSteps.length === 0) {
+      if (parsedMethodSteps.length === 0 || parsedMethodSteps.every(step => !step)) {
         return res.status(400).json({ message: 'methodSteps cannot be empty' });
       }
-      console.log('Parsed methodSteps:', parsedMethodSteps); // Debug log
     } catch (parseError) {
       console.error('Method steps parse error:', parseError);
       return res.status(400).json({ message: 'Invalid methodSteps format' });
     }
+    const recipeId = await getNextRecipeId();
+    console.log('Assigned recipe ID:', recipeId);
     const newRecipe = new Recipe({
-      id: await getNextRecipeId(),
+      id: recipeId,
       name,
       cuisine,
-      cookingTime: parseInt(cookingTime),
-      ingredients: Array.isArray(parsedIngredients) ? parsedIngredients.map(({ name, quantity }) => ({ name, quantity })) : [],
+      cookingTime: parsedCookingTime,
+      ingredients: parsedIngredients.map(({ name, quantity, unit }) => ({
+        name: name || '',
+        quantity: quantity || '',
+        unit: unit || ''
+      })),
       nutritionalInfo: nutritionalInfo || '',
       methodSteps: parsedMethodSteps,
       youtubeLink: youtubeLink || '',
@@ -226,25 +292,29 @@ app.post('/recipes', verifyToken, upload.single('image'), handleMulterError, asy
       comments: [],
       rating: 0,
       createdBy: req.user.username,
+      reviews: []
     });
+    console.log('Saving recipe:', newRecipe);
     await newRecipe.save();
-    console.log('Recipe added:', newRecipe); // Debug log
+    console.log('Recipe added:', newRecipe);
     res.status(201).json(newRecipe);
   } catch (err) {
     console.error('Add recipe error:', err);
-    res.status(500).json({ message: 'Server error during recipe creation' });
+    res.status(500).json({ message: 'Server error during recipe creation', error: err.message });
   }
 });
 
-
-// Update a recipe
 app.put('/recipes/:id', verifyToken, upload.single('image'), handleMulterError, async (req, res) => {
   const { name, cuisine, cookingTime, ingredients, nutritionalInfo, methodSteps, youtubeLink } = req.body;
   try {
-    const recipe = await Recipe.findOne({ id: parseInt(req.params.id) });
+    const recipeId = parseInt(req.params.id);
+    if (isNaN(recipeId)) {
+      console.log(`Invalid recipe ID received: ${req.params.id}`);
+      return res.status(400).json({ message: 'Invalid recipe ID' });
+    }
+    const recipe = await Recipe.findOne({ id: recipeId });
     if (!recipe) return res.status(404).json({ message: 'Recipe not found' });
 
-    // Only allow the creator to edit the recipe
     if (req.user.username !== recipe.createdBy) {
       return res.status(403).json({ message: 'You are not authorized to edit this recipe' });
     }
@@ -252,79 +322,112 @@ app.put('/recipes/:id', verifyToken, upload.single('image'), handleMulterError, 
     const updateData = {};
     if (name) updateData.name = name;
     if (cuisine) updateData.cuisine = cuisine;
-    if (cookingTime) updateData.cookingTime = parseInt(cookingTime);
+    if (cookingTime) {
+      const parsedCookingTime = parseInt(cookingTime);
+      if (isNaN(parsedCookingTime) || parsedCookingTime <= 0) {
+        return res.status(400).json({ message: 'Cooking time must be a positive number' });
+      }
+      updateData.cookingTime = parsedCookingTime;
+    }
     if (ingredients) {
       const parsedIngredients = JSON.parse(ingredients);
+      console.log('Parsed ingredients:', parsedIngredients);
       if (!Array.isArray(parsedIngredients)) {
         return res.status(400).json({ message: 'Ingredients must be an array' });
       }
-      updateData.ingredients = parsedIngredients;
+      updateData.ingredients = parsedIngredients.map(({ name, quantity, unit }) => ({
+        name: name || '',
+        quantity: quantity || '',
+        unit: unit || ''
+      }));
     }
     if (nutritionalInfo) updateData.nutritionalInfo = nutritionalInfo;
     if (methodSteps) {
-      updateData.methodSteps = typeof methodSteps === 'string'
-        ? methodSteps.split(',').map(item => item.trim())
-        : methodSteps;
+      let parsedMethodSteps;
+      try {
+        parsedMethodSteps = JSON.parse(methodSteps);
+        if (!Array.isArray(parsedMethodSteps)) {
+          return res.status(400).json({ message: 'methodSteps must be an array' });
+        }
+        parsedMethodSteps = parsedMethodSteps.map(step => typeof step === 'string' ? step.trim() : '');
+        if (parsedMethodSteps.length === 0 || parsedMethodSteps.every(step => !step)) {
+          return res.status(400).json({ message: 'methodSteps cannot be empty' });
+        }
+        updateData.methodSteps = parsedMethodSteps;
+      } catch (parseError) {
+        console.error('Method steps parse error:', parseError);
+        return res.status(400).json({ message: 'Invalid methodSteps format' });
+      }
     }
     if (youtubeLink) updateData.youtubeLink = youtubeLink;
     if (req.file) {
-      // Delete old image from Cloudinary if it exists
       if (recipe.imageUrl) {
         const publicId = recipe.imageUrl.split('/').slice(-2).join('/').split('.')[0];
         await cloudinary.uploader.destroy(publicId);
         console.log(`Deleted image from Cloudinary: ${publicId}`);
       }
       updateData.imageUrl = req.file.path;
+      console.log('Updated imageUrl:', updateData.imageUrl);
     }
 
     const updatedRecipe = await Recipe.findOneAndUpdate(
-      { id: parseInt(req.params.id) },
-      updateData,
+      { id: recipeId },
+      { $set: updateData },
       { new: true }
     );
     if (!updatedRecipe) return res.status(404).json({ message: 'Recipe not found' });
 
+    console.log('Recipe updated:', updatedRecipe);
     res.json(updatedRecipe);
   } catch (err) {
     console.error('Error updating recipe:', err);
-    res.status(500).json({ message: 'Server error during recipe update' });
+    res.status(500).json({ message: 'Server error during recipe update', error: err.message });
   }
 });
 
-// Delete a recipe
 app.delete('/recipes/:id', verifyToken, async (req, res) => {
   try {
-    const recipe = await Recipe.findOne({ id: parseInt(req.params.id) });
+    const recipeId = parseInt(req.params.id);
+    if (isNaN(recipeId)) {
+      console.log(`Invalid recipe ID received: ${req.params.id}`);
+      return res.status(400).json({ message: 'Invalid recipe ID' });
+    }
+    console.log(`Deleting recipe with ID: ${recipeId}`);
+    const recipe = await Recipe.findOne({ id: recipeId });
+    console.log('Recipe found:', recipe ? recipe : 'None');
     if (!recipe) return res.status(404).json({ message: 'Recipe not found' });
 
-    // Allow admins (maryam865) or the creator to delete the recipe
     if (req.user.username !== 'maryam865' && req.user.username !== recipe.createdBy) {
       return res.status(403).json({ message: 'You are not authorized to delete this recipe' });
     }
 
-    // Delete image from Cloudinary
     if (recipe.imageUrl) {
       const publicId = recipe.imageUrl.split('/').slice(-2).join('/').split('.')[0];
       await cloudinary.uploader.destroy(publicId);
       console.log(`Deleted image from Cloudinary: ${publicId}`);
     }
 
-    await Recipe.deleteOne({ id: parseInt(req.params.id) });
+    await Recipe.deleteOne({ id: recipeId });
+    console.log('Recipe deleted:', recipeId);
     res.json({ message: 'Recipe deleted successfully' });
   } catch (err) {
     console.error('Error deleting recipe:', err);
-    res.status(500).json({ message: 'Server error during recipe deletion' });
+    res.status(500).json({ message: 'Server error during recipe deletion', error: err.message });
   }
 });
 
-// Add a comment to a recipe
 app.post('/recipes/:id/comment', verifyToken, async (req, res) => {
   const { comment, rating } = req.body;
   try {
     if (!comment || !rating || rating < 1 || rating > 5) {
       return res.status(400).json({ message: 'Comment and rating (1-5) are required' });
     }
-    const recipe = await Recipe.findOne({ id: parseInt(req.params.id) });
+    const recipeId = parseInt(req.params.id);
+    if (isNaN(recipeId)) {
+      console.log(`Invalid recipe ID received: ${req.params.id}`);
+      return res.status(400).json({ message: 'Invalid recipe ID' });
+    }
+    const recipe = await Recipe.findOne({ id: recipeId });
     if (!recipe) return res.status(404).json({ message: 'Recipe not found' });
 
     recipe.comments.push({ comment, rating: parseInt(rating), user: req.user.id });
@@ -332,22 +435,26 @@ app.post('/recipes/:id/comment', verifyToken, async (req, res) => {
     recipe.rating = (totalRating / recipe.comments.length).toFixed(1);
 
     await recipe.save();
+    console.log('Comment added to recipe:', recipeId);
     res.json({ message: 'Comment added', recipe });
   } catch (err) {
     console.error('Error adding comment:', err);
-    res.status(500).json({ message: 'Server error during comment addition' });
+    res.status(500).json({ message: 'Server error during comment addition', error: err.message });
   }
 });
 
-// Delete a specific comment from a recipe
 app.delete('/recipes/:id/comments/:commentIndex', verifyToken, async (req, res) => {
   try {
-    // Only allow admin (maryam865) to delete comments
     if (req.user.username !== 'maryam865') {
       return res.status(403).json({ message: 'Only admin can delete comments' });
     }
 
-    const recipe = await Recipe.findOne({ id: parseInt(req.params.id) });
+    const recipeId = parseInt(req.params.id);
+    if (isNaN(recipeId)) {
+      console.log(`Invalid recipe ID received: ${req.params.id}`);
+      return res.status(400).json({ message: 'Invalid recipe ID' });
+    }
+    const recipe = await Recipe.findOne({ id: recipeId });
     if (!recipe) return res.status(404).json({ message: 'Recipe not found' });
 
     const commentIndex = parseInt(req.params.commentIndex);
@@ -365,15 +472,14 @@ app.delete('/recipes/:id/comments/:commentIndex', verifyToken, async (req, res) 
     }
 
     await recipe.save();
+    console.log('Comment deleted from recipe:', recipeId);
     res.json({ message: 'Comment deleted successfully', recipe });
   } catch (err) {
     console.error('Error deleting comment:', err);
-    res.status(500).json({ message: 'Server error during comment deletion' });
+    res.status(500).json({ message: 'Server error during comment deletion', error: err.message });
   }
 });
 
-// Start server
-const port = process.env.PORT || 5000;
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+app.listen(process.env.PORT || 5000, () => {
+  console.log(`Server running on port ${process.env.PORT || 5000}`);
 });
