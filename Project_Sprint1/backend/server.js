@@ -174,10 +174,19 @@ app.get('/recipes', verifyToken, async (req, res) => {
 
 app.get('/recipes/:id', verifyToken, async (req, res) => {
   try {
-    const recipe = await Recipe.findOne({ id: parseInt(req.params.id) });
-    if (!recipe) return res.status(404).json({ message: 'Recipe not found' });
+    const recipeId = parseInt(req.params.id);
+    if (isNaN(recipeId)) {
+      return res.status(400).json({ message: 'Invalid recipe ID' });
+    }
+    console.log(`Fetching recipe with ID: ${recipeId}`); // Debug log
+    const recipe = await Recipe.findOne({ id: recipeId });
+    console.log('Recipe found:', recipe); // Debug log
+    if (!recipe) {
+      return res.status(404).json({ message: `Recipe with ID ${recipeId} not found` });
+    }
     res.json(recipe);
-  } catch (err) {
+  } catch (error) {
+    console.error('Fetch recipe error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
