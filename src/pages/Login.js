@@ -14,6 +14,12 @@ function Login({ setToken }) {
     e.preventDefault();
     setError('');
 
+    // Client-side validation
+    if (!username.trim() || !password.trim()) {
+      setError('Username and password are required');
+      return;
+    }
+
     try {
       console.log('Sending login request:', { username }); // Debug log
       const res = await axios.post(`${apiUrl}/login`, {
@@ -32,7 +38,20 @@ function Login({ setToken }) {
       navigate('/recipes', { replace: true });
     } catch (err) {
       console.error('Login error:', err.response || err.message || err); // Debug log
-      setError(err.response?.data?.message || err.message || 'Login failed');
+      if (err.response) {
+        const { status, data } = err.response;
+        if (status === 401 || status === 403) {
+          setError(data.message || 'Invalid username or password');
+        } else if (status === 500) {
+          setError('Server error, please try again later');
+        } else {
+          setError(data.message || 'Login failed');
+        }
+      } else if (err.request) {
+        setError('Network error, please check your connection');
+      } else {
+        setError(err.message || 'Login failed');
+      }
     }
   };
 
