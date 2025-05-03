@@ -1,150 +1,200 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { useNavigate, useParams } from 'react-router-dom';
 
 const EditRecipe = () => {
-  const { id } = useParams();
-  const [formData, setFormData] = useState({
-    name: '',
-    cuisine: '',
-    cookingTime: '',
-    ingredients: [],
-    nutritionalInfo: '',
-    methodSteps: '',
-    youtubeLink: '',
-    image: null
-  });
-  const [newIngredient, setNewIngredient] = useState({ name: '', quantity: '', unit: '' });
+  const [name, setName] = useState('');
+  const [cuisine, setCuisine] = useState('');
+  const [cookingTime, setCookingTime] = useState('');
+  const [ingredients, setIngredients] = useState([{ name: '', quantity: '', unit: '' }]);
+  const [nutritionalInfo, setNutritionalInfo] = useState('');
+  const [methodSteps, setMethodSteps] = useState('');
+  const [youtubeLink, setYoutubeLink] = useState('');
+  const [imageFile, setImageFile] = useState(null);
+  const [imageUrl, setImageUrl] = useState('');
+  const [imagePreview, setImagePreview] = useState(null);
   const [error, setError] = useState('');
-  const [ingredientError, setIngredientError] = useState('');
+  const [newIngredient, setNewIngredient] = useState({ name: '', quantity: '', unit: '' });
   const navigate = useNavigate();
+  const { id } = useParams();
+  const apiUrl = process.env.REACT_APP_API_URL || 'https://recipehub-h224.onrender.com';
+  const localApiUrl = 'http://localhost:5000';
 
   useEffect(() => {
     const fetchRecipe = async () => {
       try {
         const token = localStorage.getItem('token');
-        if (!token) throw new Error('No token found');
-        const res = await axios.get(`https://recipehub-h224.onrender.com/recipes/${id}`, {
-          headers: { Authorization: `Bearer ${token}` }
+        if (!token) {
+          navigate('/login');
+          return;
+        }
+        console.log(`Fetching recipe with ID: ${id}`);
+        let response = await fetch(`${apiUrl}/recipes/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
         });
-        console.log("Fetched recipe data:");
-        setFormData({
-          name: res.data.name,
-          cuisine: res.data.cuisine,
-          cookingTime: res.data.cookingTime,
-          ingredients: res.data.ingredients,
-          nutritionalInfo: res.data.nutritionalInfo,
-          methodSteps: res.data.methodSteps.join(', '),
-          youtubeLink: res.data.youtubeLink,
-          image: null
-        });
+        if (!response.ok && response.status === 404) {
+          console.log(`API fetch failed, trying local: ${localApiUrl}/recipes/${id}`);
+          response = await fetch(`${localApiUrl}/recipes/${id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+        }
+        if (response.status === 401) {
+          localStorage.removeItem('token');
+          navigate('/login');
+          return;
+        }
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to fetch recipe');
+        }
+        const data = await response.json();
+        console.log('Fetched recipe:', data);
+        console.log('Ingredients units:', data.ingredients.map(ing => ing.unit));
+        setName(data.name || '');
+        setCuisine(data.cuisine || '');
+        setCookingTime(data.cookingTime || '');
+        setIngredients(
+          data.ingredients && data.ingredients.length > 0
+            ? data.ingredients.map(({ name, quantity, unit }) => ({
+                name: name || '',
+                quantity: quantity || '',
+                unit: unit || ''
+              }))
+            : [{ name: '', quantity: '', unit: '' }]
+        );
+        setNutritionalInfo(data.nutritionalInfo || '');
+        setMethodSteps(data.methodSteps ? data.methodSteps.join(', ') : '');
+        setYoutubeLink(data.youtubeLink || '');
+        setImageUrl(data.imageUrl || '');
       } catch (err) {
-        setError(err.response?.data?.message || 'Failed to fetch recipe');
+        console.error('Fetch recipe error:', err);
+        setError(err.message || 'Error fetching recipe');
       }
     };
     fetchRecipe();
-  }, [id]);
+  }, [id, navigate]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
-  const handleIngredientChange = (e) => {
-    const { name, value } = e.target;
-    setNewIngredient((prev) => ({ ...prev, [name]: value }));
-    setIngredientError('');
-  };
-
-  const addIngredient = () => {
-    if (!newIngredient.name || !newIngredient.quantity || newIngredient.unit === '') {
-      setIngredientError('Please fill in all ingredient fields (name, quantity, unit).');
-      return;
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    setImageFile(file);
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreview(reader.result);
+      reader.readAsDataURL(file);
+    } else {
+      setImagePreview(null);
     }
-    const quantityNum = parseFloat(newIngredient.quantity);
-    if (isNaN(quantityNum) || quantityNum <= 0) {
-      setIngredientError('Quantity must be a number greater than 0.');
-      return;
-    }
-    const unit = newIngredient.unit === 'null' ? null : newIngredient.unit;
-    setFormData((prev) => ({
-      ...prev,
-      ingredients: [...prev.ingredients, { name: newIngredient.name, quantity: newIngredient.quantity, unit }],
-    }));
-    setNewIngredient({ name: '', quantity: '', unit: '' });
-    setIngredientError('');
-  };
-
-  const removeIngredient = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      ingredients: prev.ingredients.filter((_, i) => i !== index),
-    }));
-  };
-
-  const handleFileChange = (e) => {
-    setFormData({ ...formData, image: e.target.files[0] });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+
+    if (ingredients.length === 0 || !ingredients.some(ing => ing.name && ing.quantity)) {
+      setError('At least one ingredient with name and quantity is required');
+      return;
+    }
+
+    const formData = new FormData();
+    if (name) formData.append('name', name);
+    if (cuisine) formData.append('cuisine', cuisine);
+    if (cookingTime) formData.append('cookingTime', cookingTime);
+    if (ingredients.length) {
+      console.log('Submitting ingredients:', ingredients);
+      formData.append('ingredients', JSON.stringify(ingredients));
+    }
+    if (nutritionalInfo) formData.append('nutritionalInfo', nutritionalInfo);
+    if (methodSteps) formData.append('methodSteps', JSON.stringify(methodSteps.split(',').map(step => step.trim())));
+    if (youtubeLink) formData.append('youtubeLink', youtubeLink);
+    if (imageFile) formData.append('image', imageFile);
+
     try {
       const token = localStorage.getItem('token');
-      if (!token) throw new Error('No token found');
-      if (formData.ingredients.length === 0) {
-        setError('At least one ingredient is required');
+      if (!token) {
+        navigate('/login');
         return;
       }
-      const data = new FormData();
-      data.append('name', formData.name);
-      data.append('cuisine', formData.cuisine);
-      data.append('cookingTime', formData.cookingTime);
-      data.append('ingredients', JSON.stringify(formData.ingredients));
-      data.append('nutritionalInfo', formData.nutritionalInfo);
-      data.append('methodSteps', formData.methodSteps);
-      data.append('youtubeLink', formData.youtubeLink);
-      if (formData.image) {
-        data.append('image', formData.image);
-      }
-      await axios.put(`https://recipehub-h224.onrender.com/recipes/${id}`, data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
+      let response = await fetch(`${apiUrl}/recipes/${id}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
       });
+      if (!response.ok && response.status === 404) {
+        response = await fetch(`${localApiUrl}/recipes/${id}`, {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        });
+      }
+      if (response.status === 401) {
+        localStorage.removeItem('token');
+        navigate('/login');
+        return;
+      }
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update recipe');
+      }
       navigate('/recipes');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update recipe');
+      console.error('Edit recipe error:', err);
+      setError(err.message || 'Error updating recipe');
     }
+  };
+
+  const handleIngredientChange = (e, index) => {
+    const { name, value } = e.target;
+    if (index === undefined) {
+      setNewIngredient((prev) => ({ ...prev, [name]: value }));
+    } else {
+      const newIngredients = [...ingredients];
+      newIngredients[index][name] = value;
+      setIngredients(newIngredients);
+    }
+  };
+
+  const addIngredient = () => {
+    if (!newIngredient.name || !newIngredient.quantity || newIngredient.unit === '') {
+      setError('Please fill in all ingredient fields (name, quantity, unit).');
+      return;
+    }
+    const quantityNum = parseFloat(newIngredient.quantity);
+    if (isNaN(quantityNum) || quantityNum <= 0) {
+      setError('Quantity must be a number greater than 0.');
+      return;
+    }
+    setIngredients((prev) => [...prev, { name: newIngredient.name, quantity: newIngredient.quantity, unit: newIngredient.unit }]);
+    setNewIngredient({ name: '', quantity: '', unit: '' });
+    setError('');
+  };
+
+  const removeIngredient = (index) => {
+    setIngredients((prev) => prev.filter((_, i) => i !== index));
   };
 
   return (
     <div className="edit-recipe-page">
       <h1>Edit Recipe</h1>
       {error && <p style={{ color: 'red' }}>{error}</p>}
-      <form onSubmit={handleSubmit} encType="multipart/form-data">
-        <label>Name:</label>
+      <form onSubmit={handleSubmit}>
+        <label>Recipe Name:</label>
         <input
           type="text"
-          name="name"
-          value={formData.name}
-          onChange={handleChange}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
           required
         />
         <label>Cuisine:</label>
         <input
           type="text"
-          name="cuisine"
-          value={formData.cuisine}
-          onChange={handleChange}
+          value={cuisine}
+          onChange={(e) => setCuisine(e.target.value)}
           required
         />
         <label>Cooking Time (minutes):</label>
         <input
           type="number"
-          name="cookingTime"
-          value={formData.cookingTime}
-          onChange={handleChange}
+          value={cookingTime}
+          onChange={(e) => setCookingTime(e.target.value)}
           required
         />
         <label>Ingredients:</label>
@@ -153,23 +203,23 @@ const EditRecipe = () => {
             type="text"
             name="name"
             value={newIngredient.name}
-            onChange={handleIngredientChange}
+            onChange={(e) => handleIngredientChange(e)}
             placeholder="Ingredient name"
           />
           <input
             type="number"
             name="quantity"
             value={newIngredient.quantity}
-            onChange={handleIngredientChange}
+            onChange={(e) => handleIngredientChange(e)}
             placeholder="Quantity (e.g., 200, 2)"
             min={0.1}
           />
           <select
             name="unit"
             value={newIngredient.unit}
-            onChange={handleIngredientChange}
+            onChange={(e) => handleIngredientChange(e)}
           >
-            <option value="">Select unit</option>
+            <option value="">None</option>
             <option value="g">g</option>
             <option value="kg">kg</option>
             <option value="l">l</option>
@@ -183,18 +233,50 @@ const EditRecipe = () => {
             <option value="inch">inch</option>
             <option value="small">small</option>
             <option value="medium">medium</option>
-            <option value="null">None</option>
           </select>
           <button type="button" onClick={addIngredient}>
             Add Ingredient
           </button>
         </div>
-        {ingredientError && <p className="ingredient-error">{ingredientError}</p>}
-        {formData.ingredients.length > 0 && (
+        {ingredients.length > 0 && (
           <ul className="ingredient-list">
-            {formData.ingredients.map((ingredient, index) => (
+            {ingredients.map((ingredient, index) => (
               <li key={index}>
-                {ingredient.name}: {ingredient.quantity} {ingredient.unit !== null ? ingredient.unit : ''}
+                <input
+                  type="text"
+                  name="name"
+                  value={ingredient.name}
+                  onChange={(e) => handleIngredientChange(e, index)}
+                  placeholder="Ingredient name"
+                />
+                <input
+                  type="number"
+                  name="quantity"
+                  value={ingredient.quantity}
+                  onChange={(e) => handleIngredientChange(e, index)}
+                  placeholder="Quantity"
+                  min={0.1}
+                />
+                <select
+                  name="unit"
+                  value={ingredient.unit}
+                  onChange={(e) => handleIngredientChange(e, index)}
+                >
+                  <option value="">None</option>
+                  <option value="g">g</option>
+                  <option value="kg">kg</option>
+                  <option value="l">l</option>
+                  <option value="ml">ml</option>
+                  <option value="ounce">ounce</option>
+                  <option value="cup">cup</option>
+                  <option value="tsp">tsp</option>
+                  <option value="tbsp">tbsp</option>
+                  <option value="pinch">pinch</option>
+                  <option value="clove">clove</option>
+                  <option value="inch">inch</option>
+                  <option value="small">small</option>
+                  <option value="medium">medium</option>
+                </select>
                 <button
                   type="button"
                   onClick={() => removeIngredient(index)}
@@ -206,35 +288,40 @@ const EditRecipe = () => {
             ))}
           </ul>
         )}
-        <label>Nutritional Info:</label>
+        <label>Nutritional Info (optional):</label>
         <input
           type="text"
-          name="nutritionalInfo"
-          value={formData.nutritionalInfo}
-          onChange={handleChange}
+          value={nutritionalInfo}
+          onChange={(e) => setNutritionalInfo(e.target.value)}
         />
         <label>Method Steps (comma-separated):</label>
         <input
           type="text"
-          name="methodSteps"
-          value={formData.methodSteps}
-          onChange={handleChange}
+          value={methodSteps}
+          onChange={(e) => setMethodSteps(e.target.value)}
           required
         />
-        <label>YouTube Link:</label>
+        <label>YouTube Link (optional):</label>
         <input
           type="text"
-          name="youtubeLink"
-          value={formData.youtubeLink}
-          onChange={handleChange}
+          value={youtubeLink}
+          onChange={(e) => setYoutubeLink(e.target.value)}
         />
-        <label>Image:</label>
+        <label>Image (optional):</label>
         <input
           type="file"
-          name="image"
           accept="image/jpeg,image/png"
-          onChange={handleFileChange}
+          onChange={handleImageChange}
         />
+        {(imageUrl || imagePreview) && (
+          <div className="image-preview">
+            <img
+              src={imagePreview || imageUrl}
+              alt="Recipe"
+              style={{ maxWidth: '200px' }}
+            />
+          </div>
+        )}
         <button type="submit">Update Recipe</button>
       </form>
     </div>
