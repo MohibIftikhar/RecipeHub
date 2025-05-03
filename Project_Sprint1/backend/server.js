@@ -1,4 +1,3 @@
-// server.js
 const express = require('express');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
@@ -6,86 +5,84 @@ const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const multer = require('multer');
-const path = require('path');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const { v4: uuidv4 } = require('uuid');
+
 
 const User = require('./models/User');
 const Recipe = require('./models/Recipe');
+const Counter = require('./models/Counter');
 
 dotenv.config();
 
 const app = express();
-const port = 5000;
+
+// Validate environment variables
+const requiredEnv = ['MONGO_URI', 'JWT_SECRET', 'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'];
+for (const env of requiredEnv) {
+  if (!process.env[env]) {
+    console.error(`Error: Missing required environment variable: ${env}`);
+    process.exit(1);
+  }
+}
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 // Connect to MongoDB
-console.log("Attempting to connect to MongoDB...");
-
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => {
-  console.log('MongoDB connection established successfully.');
-})
-.catch(err => {
+  useUnifiedTopology: true,
+}).then(() => {
+  console.log('Connected to MongoDB');
+}).catch((err) => {
   console.error('MongoDB connection error:', err);
-  // Optionally log the error stack for more details
-  console.error(err.stack);
+  process.exit(1);
 });
-
-// Additional logging during the startup process
-mongoose.connection.on('connecting', () => {
-  console.log('MongoDB is connecting...');
-});
-
-mongoose.connection.on('connected', () => {
-  console.log('MongoDB connection established.');
-});
-
-mongoose.connection.on('disconnecting', () => {
-  console.log('MongoDB is disconnecting...');
-});
-
-mongoose.connection.on('disconnected', () => {
-  console.log('MongoDB disconnected.');
-});
-
-mongoose.connection.on('error', (err) => {
-  console.error('MongoDB connection error:', err);
-});
-
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: ['https://recipehubfe.onrender.com', 'http://localhost:3000'],
+  credentials: true,
+}));
 app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// JWT Secret
-const SECRET_KEY = process.env.JWT_SECRET || 'h@jsoeeiwq';
-
-// Multer setup
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, 'uploads');
-    cb(null, uploadDir);
+// Multer setup with Cloudinary
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'recipehub',
+    allowed_formats: ['jpg', 'png'],
+    public_id: (req, file) => `${Date.now()}-${Math.round(Math.random() * 1e9)}`,
   },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
 });
 const upload = multer({
   storage,
   fileFilter: (req, file, cb) => {
     const filetypes = /jpeg|jpg|png/;
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = filetypes.test(file.mimetype);
-    if (extname && mimetype) {
+    const extname = filetypes.test(file.originalname.toLowerCase().split('.').pop());
+    if (extname) {
       return cb(null, true);
     }
     cb(new Error('Only .jpg and .png files are allowed'));
   },
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
 });
+
+// Multer error handling middleware
+const handleMulterError = (err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    return res.status(400).json({ message: err.message });
+  } else if (err) {
+    return res.status(400).json({ message: err.message });
+  }
+  next();
+};
 
 // Verify JWT
 const verifyToken = (req, res, next) => {
@@ -93,7 +90,7 @@ const verifyToken = (req, res, next) => {
   if (!token) return res.status(403).json({ message: 'Access denied. No token provided.' });
 
   try {
-    const decoded = jwt.verify(token, SECRET_KEY);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
     next();
   } catch (err) {
@@ -101,14 +98,30 @@ const verifyToken = (req, res, next) => {
   }
 };
 
+const getNextRecipeId = async () => {
+  const counter = await Counter.findOneAndUpdate(
+    { name: 'recipeId' },
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true }
+  );
+  return counter.seq;
+};
+
 // Routes
 app.get('/', (req, res) => {
   res.send('Welcome to RecipeHub!');
 });
 
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'OK' });
+});
+
 // Register
 app.post('/register', async (req, res) => {
   const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ message: 'Username and password are required' });
+  }
   try {
     const existingUser = await User.findOne({ username });
     if (existingUser) return res.status(400).json({ message: 'Username already exists' });
@@ -127,6 +140,9 @@ app.post('/register', async (req, res) => {
 // Login
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ message: 'Username and password are required' });
+  }
   try {
     const user = await User.findOne({ username });
     if (!user) return res.status(401).json({ message: 'Invalid credentials' });
@@ -136,11 +152,11 @@ app.post('/login', async (req, res) => {
 
     const token = jwt.sign(
       { id: user._id, username: user.username },
-      SECRET_KEY,
+      process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
 
-    res.json({ message: 'Login successful', token });
+    res.json({ message: 'Login successful', token, username });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ message: 'Server error during login' });
@@ -150,64 +166,91 @@ app.post('/login', async (req, res) => {
 // Get all recipes
 app.get('/recipes', verifyToken, async (req, res) => {
   try {
-    const recipes = await Recipe.find();
-    res.json(recipes);
+    res.json(await Recipe.find());
   } catch (err) {
-    console.error('Error getting recipes:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-// Get a recipe by ID
 app.get('/recipes/:id', verifyToken, async (req, res) => {
   try {
-    const recipe = await Recipe.findById(req.params.id);
+    const recipe = await Recipe.findOne({ id: parseInt(req.params.id) });
     if (!recipe) return res.status(404).json({ message: 'Recipe not found' });
-
     res.json(recipe);
   } catch (err) {
-    console.error('Error getting recipe:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
 // Create a new recipe
-app.post('/recipes', verifyToken, upload.single('image'), async (req, res) => {
+app.post('/recipes', verifyToken, upload.single('image'), handleMulterError, async (req, res) => {
   const { name, cuisine, cookingTime, ingredients, nutritionalInfo, methodSteps, youtubeLink } = req.body;
+  if (!name || !cuisine || !cookingTime || !ingredients) return res.status(400).json({ message: 'Required fields missing' });
   try {
-    let parsedIngredients = JSON.parse(ingredients);
-
+    const parsedIngredients = JSON.parse(ingredients);
+    let parsedMethodSteps;
+    try {
+      parsedMethodSteps = JSON.parse(methodSteps);
+      if (!Array.isArray(parsedMethodSteps)) {
+        return res.status(400).json({ message: 'methodSteps must be an array' });
+      }
+      // Ensure each step is a string and trimmed
+      parsedMethodSteps = parsedMethodSteps.map(step => typeof step === 'string' ? step.trim() : '');
+      if (parsedMethodSteps.length === 0) {
+        return res.status(400).json({ message: 'methodSteps cannot be empty' });
+      }
+      console.log('Parsed methodSteps:', parsedMethodSteps); // Debug log
+    } catch (parseError) {
+      console.error('Method steps parse error:', parseError);
+      return res.status(400).json({ message: 'Invalid methodSteps format' });
+    }
     const newRecipe = new Recipe({
+      id: await getNextRecipeId(),
       name,
       cuisine,
       cookingTime: parseInt(cookingTime),
-      ingredients: parsedIngredients,
+      ingredients: Array.isArray(parsedIngredients) ? parsedIngredients.map(({ name, quantity }) => ({ name, quantity })) : [],
       nutritionalInfo: nutritionalInfo || '',
-      methodSteps: typeof methodSteps === 'string' ? methodSteps.split(',').map(item => item.trim()) : methodSteps,
+      methodSteps: parsedMethodSteps,
       youtubeLink: youtubeLink || '',
-      imageUrl: req.file ? `/uploads/${req.file.filename}` : '',
+      imageUrl: req.file ? req.file.path : '',
       comments: [],
-      rating: 0
+      rating: 0,
+      createdBy: req.user.username,
     });
-
     await newRecipe.save();
+    console.log('Recipe added:', newRecipe); // Debug log
     res.status(201).json(newRecipe);
   } catch (err) {
-    console.error('Error creating recipe:', err);
+    console.error('Add recipe error:', err);
     res.status(500).json({ message: 'Server error during recipe creation' });
   }
 });
 
+
 // Update a recipe
-app.put('/recipes/:id', verifyToken, upload.single('image'), async (req, res) => {
+app.put('/recipes/:id', verifyToken, upload.single('image'), handleMulterError, async (req, res) => {
   const { name, cuisine, cookingTime, ingredients, nutritionalInfo, methodSteps, youtubeLink } = req.body;
   try {
-    const updateData = {};
+    const recipe = await Recipe.findOne({ id: parseInt(req.params.id) });
+    if (!recipe) return res.status(404).json({ message: 'Recipe not found' });
 
+    // Only allow the creator to edit the recipe
+    if (req.user.username !== recipe.createdBy) {
+      return res.status(403).json({ message: 'You are not authorized to edit this recipe' });
+    }
+
+    const updateData = {};
     if (name) updateData.name = name;
     if (cuisine) updateData.cuisine = cuisine;
     if (cookingTime) updateData.cookingTime = parseInt(cookingTime);
-    if (ingredients) updateData.ingredients = JSON.parse(ingredients);
+    if (ingredients) {
+      const parsedIngredients = JSON.parse(ingredients);
+      if (!Array.isArray(parsedIngredients)) {
+        return res.status(400).json({ message: 'Ingredients must be an array' });
+      }
+      updateData.ingredients = parsedIngredients;
+    }
     if (nutritionalInfo) updateData.nutritionalInfo = nutritionalInfo;
     if (methodSteps) {
       updateData.methodSteps = typeof methodSteps === 'string'
@@ -215,9 +258,21 @@ app.put('/recipes/:id', verifyToken, upload.single('image'), async (req, res) =>
         : methodSteps;
     }
     if (youtubeLink) updateData.youtubeLink = youtubeLink;
-    if (req.file) updateData.imageUrl = `/uploads/${req.file.filename}`;
+    if (req.file) {
+      // Delete old image from Cloudinary if it exists
+      if (recipe.imageUrl) {
+        const publicId = recipe.imageUrl.split('/').slice(-2).join('/').split('.')[0];
+        await cloudinary.uploader.destroy(publicId);
+        console.log(`Deleted image from Cloudinary: ${publicId}`);
+      }
+      updateData.imageUrl = req.file.path;
+    }
 
-    const updatedRecipe = await Recipe.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    const updatedRecipe = await Recipe.findOneAndUpdate(
+      { id: parseInt(req.params.id) },
+      updateData,
+      { new: true }
+    );
     if (!updatedRecipe) return res.status(404).json({ message: 'Recipe not found' });
 
     res.json(updatedRecipe);
@@ -230,9 +285,22 @@ app.put('/recipes/:id', verifyToken, upload.single('image'), async (req, res) =>
 // Delete a recipe
 app.delete('/recipes/:id', verifyToken, async (req, res) => {
   try {
-    const deletedRecipe = await Recipe.findByIdAndDelete(req.params.id);
-    if (!deletedRecipe) return res.status(404).json({ message: 'Recipe not found' });
+    const recipe = await Recipe.findOne({ id: parseInt(req.params.id) });
+    if (!recipe) return res.status(404).json({ message: 'Recipe not found' });
 
+    // Allow admins (maryam865) or the creator to delete the recipe
+    if (req.user.username !== 'maryam865' && req.user.username !== recipe.createdBy) {
+      return res.status(403).json({ message: 'You are not authorized to delete this recipe' });
+    }
+
+    // Delete image from Cloudinary
+    if (recipe.imageUrl) {
+      const publicId = recipe.imageUrl.split('/').slice(-2).join('/').split('.')[0];
+      await cloudinary.uploader.destroy(publicId);
+      console.log(`Deleted image from Cloudinary: ${publicId}`);
+    }
+
+    await Recipe.deleteOne({ id: parseInt(req.params.id) });
     res.json({ message: 'Recipe deleted successfully' });
   } catch (err) {
     console.error('Error deleting recipe:', err);
@@ -244,10 +312,13 @@ app.delete('/recipes/:id', verifyToken, async (req, res) => {
 app.post('/recipes/:id/comment', verifyToken, async (req, res) => {
   const { comment, rating } = req.body;
   try {
-    const recipe = await Recipe.findById(req.params.id);
+    if (!comment || !rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ message: 'Comment and rating (1-5) are required' });
+    }
+    const recipe = await Recipe.findOne({ id: parseInt(req.params.id) });
     if (!recipe) return res.status(404).json({ message: 'Recipe not found' });
 
-    recipe.comments.push({ comment, rating: parseInt(rating) });
+    recipe.comments.push({ comment, rating: parseInt(rating), user: req.user.id });
     const totalRating = recipe.comments.reduce((sum, c) => sum + c.rating, 0);
     recipe.rating = (totalRating / recipe.comments.length).toFixed(1);
 
@@ -259,7 +330,41 @@ app.post('/recipes/:id/comment', verifyToken, async (req, res) => {
   }
 });
 
+// Delete a specific comment from a recipe
+app.delete('/recipes/:id/comments/:commentIndex', verifyToken, async (req, res) => {
+  try {
+    // Only allow admin (maryam865) to delete comments
+    if (req.user.username !== 'maryam865') {
+      return res.status(403).json({ message: 'Only admin can delete comments' });
+    }
+
+    const recipe = await Recipe.findOne({ id: parseInt(req.params.id) });
+    if (!recipe) return res.status(404).json({ message: 'Recipe not found' });
+
+    const commentIndex = parseInt(req.params.commentIndex);
+    if (isNaN(commentIndex) || commentIndex < 0 || commentIndex >= recipe.comments.length) {
+      return res.status(400).json({ message: 'Invalid comment index' });
+    }
+
+    recipe.comments.splice(commentIndex, 1);
+
+    if (recipe.comments.length > 0) {
+      const totalRating = recipe.comments.reduce((sum, c) => sum + c.rating, 0);
+      recipe.rating = (totalRating / recipe.comments.length).toFixed(1);
+    } else {
+      recipe.rating = 0;
+    }
+
+    await recipe.save();
+    res.json({ message: 'Comment deleted successfully', recipe });
+  } catch (err) {
+    console.error('Error deleting comment:', err);
+    res.status(500).json({ message: 'Server error during comment deletion' });
+  }
+});
+
 // Start server
+const port = process.env.PORT || 5000;
 app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
+  console.log(`Server running on port ${port}`);
 });
