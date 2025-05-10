@@ -13,6 +13,7 @@ const EditRecipe = () => {
   const [imageUrl, setImageUrl] = useState('');
   const [imagePreview, setImagePreview] = useState(null);
   const [error, setError] = useState('');
+  const [ingredientError, setIngredientError] = useState('');
   const [newIngredient, setNewIngredient] = useState({ name: '', quantity: '', unit: '' });
   const navigate = useNavigate();
   const { id } = useParams();
@@ -88,6 +89,7 @@ const EditRecipe = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setIngredientError('');
 
     if (ingredients.length === 0 || !ingredients.some(ing => ing.name && ing.quantity)) {
       setError('At least one ingredient with name and quantity is required');
@@ -154,17 +156,17 @@ const EditRecipe = () => {
 
   const addIngredient = () => {
     if (!newIngredient.name || !newIngredient.quantity || newIngredient.unit === '') {
-      setError('Please fill in all ingredient fields (name, quantity, unit).');
+      setIngredientError('Please fill in all ingredient fields (name, quantity, unit).');
       return;
     }
     const quantityNum = parseFloat(newIngredient.quantity);
     if (isNaN(quantityNum) || quantityNum <= 0) {
-      setError('Quantity must be a number greater than 0.');
+      setIngredientError('Quantity must be a number greater than 0.');
       return;
     }
-    setIngredients((prev) => [...prev, { name: newIngredient.name, quantity: newIngredient.quantity, unit: newIngredient.unit }]);
+    setIngredients((prev) => [...prev, { ...newIngredient }]);
     setNewIngredient({ name: '', quantity: '', unit: '' });
-    setError('');
+    setIngredientError('');
   };
 
   const removeIngredient = (index) => {
@@ -212,14 +214,15 @@ const EditRecipe = () => {
             value={newIngredient.quantity}
             onChange={(e) => handleIngredientChange(e)}
             placeholder="Quantity (e.g., 200, 2)"
-            min={0.1}
+            min="0"
+            step="0.1"
           />
           <select
             name="unit"
             value={newIngredient.unit}
             onChange={(e) => handleIngredientChange(e)}
           >
-            <option value="">None</option>
+            <option value="">Select unit</option>
             <option value="g">g</option>
             <option value="kg">kg</option>
             <option value="l">l</option>
@@ -233,50 +236,19 @@ const EditRecipe = () => {
             <option value="inch">inch</option>
             <option value="small">small</option>
             <option value="medium">medium</option>
+            <option value="large">large</option>
+            <option value="  ">None</option> 
           </select>
           <button type="button" onClick={addIngredient}>
             Add Ingredient
           </button>
         </div>
+        {ingredientError && <p style={{ color: 'red' }}>{ingredientError}</p>}
         {ingredients.length > 0 && (
           <ul className="ingredient-list">
             {ingredients.map((ingredient, index) => (
               <li key={index}>
-                <input
-                  type="text"
-                  name="name"
-                  value={ingredient.name}
-                  onChange={(e) => handleIngredientChange(e, index)}
-                  placeholder="Ingredient name"
-                />
-                <input
-                  type="number"
-                  name="quantity"
-                  value={ingredient.quantity}
-                  onChange={(e) => handleIngredientChange(e, index)}
-                  placeholder="Quantity"
-                  min={0.1}
-                />
-                <select
-                  name="unit"
-                  value={ingredient.unit}
-                  onChange={(e) => handleIngredientChange(e, index)}
-                >
-                  <option value="">None</option>
-                  <option value="g">g</option>
-                  <option value="kg">kg</option>
-                  <option value="l">l</option>
-                  <option value="ml">ml</option>
-                  <option value="ounce">ounce</option>
-                  <option value="cup">cup</option>
-                  <option value="tsp">tsp</option>
-                  <option value="tbsp">tbsp</option>
-                  <option value="pinch">pinch</option>
-                  <option value="clove">clove</option>
-                  <option value="inch">inch</option>
-                  <option value="small">small</option>
-                  <option value="medium">medium</option>
-                </select>
+                {ingredient.name}: {ingredient.quantity} {ingredient.unit || ''}
                 <button
                   type="button"
                   onClick={() => removeIngredient(index)}
