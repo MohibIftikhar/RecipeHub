@@ -227,14 +227,15 @@ const AddRecipe = () => {
             value={newIngredient.quantity}
             onChange={handleIngredientChange}
             placeholder="Quantity (e.g., 200, 2)"
-            min={0.1}
+            min="0"
+            step="0.1"
           />
           <select
             name="unit"
             value={newIngredient.unit}
             onChange={handleIngredientChange}
           >
-            <option value="">None</option>
+            <option value="">Select unit</option>
             <option value="g">g</option>
             <option value="kg">kg</option>
             <option value="l">l</option>
@@ -248,6 +249,8 @@ const AddRecipe = () => {
             <option value="inch">inch</option>
             <option value="small">small</option>
             <option value="medium">medium</option>
+            <option value="large">large</option>
+            <option value="  ">None</option>
           </select>
           <button type="button" onClick={addIngredient}>
             Add Ingredient
